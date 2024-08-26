@@ -34,10 +34,24 @@ function toggleVisibility(elementId, buttonId) {
   visibilityToggle.textContent = isHidden ? "OFF" : "ON";
 }
 
+// Formate le texte : tout en majuscule pour le nom, et première lettre en majuscule pour le prénom et la matière
+function formatInput(input, type = "capitalize") {
+  if (type === "uppercase") {
+    return input.toUpperCase();
+  } else if (type === "capitalize") {
+    return input.charAt(0).toUpperCase() + input.slice(1).toLowerCase();
+  }
+  return input;
+}
+
 // Ajouter un étudiant
 document.getElementById("btnajoutstudent").addEventListener("click", () => {
-  const lastname = document.getElementById("student-lastname").value.trim();
-  const firstname = document.getElementById("student-firstname").value.trim();
+  let lastname = document.getElementById("student-lastname").value.trim();
+  let firstname = document.getElementById("student-firstname").value.trim();
+
+  // Appliquer le formatage
+  lastname = formatInput(lastname, "uppercase");
+  firstname = formatInput(firstname, "capitalize");
 
   if (lastname && firstname) {
     const student = new Student(lastname, firstname);
@@ -49,7 +63,10 @@ document.getElementById("btnajoutstudent").addEventListener("click", () => {
 
 // Ajouter une matière
 document.getElementById("btnajoutmatiere").addEventListener("click", () => {
-  const subject = document.getElementById("lesson-field").value.trim();
+  let subject = document.getElementById("lesson-field").value.trim();
+
+  // Appliquer le formatage
+  subject = formatInput(subject, "capitalize");
 
   if (subject) {
     subjects.push(subject);
@@ -81,7 +98,7 @@ function updateStudentSelect() {
     "student-choice",
     students,
     (student) => student.getFullName(),
-    "Sélectionner un étudiant"
+    "Tous les étudiants"
   );
 }
 
@@ -132,48 +149,123 @@ function updateGradeTable() {
 
   const studentIndex = document.getElementById("student-choice").value;
   const subjectIndex = document.getElementById("lessonfield-choice").value;
-  const student = students[studentIndex];
 
-  if (student) {
-    const subjectsToDisplay =
-      subjectIndex !== ""
-        ? [subjects[subjectIndex]]
-        : Object.keys(student.grades);
-    subjectsToDisplay.forEach((subject) => {
-      if (student.grades[subject]) {
-        student.grades[subject].forEach((grade) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${student.lastname}</td>
-            <td>${student.firstname}</td>
-            <td>${subject}</td>
-            <td>${grade}</td>
-          `;
-          tableData.appendChild(row);
-        });
-      }
+  if (studentIndex === "") {
+    students.forEach((student) => {
+      const subjectsToDisplay =
+        subjectIndex !== ""
+          ? [subjects[subjectIndex]]
+          : Object.keys(student.grades);
+      subjectsToDisplay.forEach((subject) => {
+        if (student.grades[subject]) {
+          student.grades[subject].forEach((grade) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${student.lastname}</td>
+              <td>${student.firstname}</td>
+              <td>${subject}</td>
+              <td>${grade}</td>
+            `;
+            tableData.appendChild(row);
+          });
+        }
+      });
     });
+  } else {
+    const student = students[studentIndex];
+    if (student) {
+      const subjectsToDisplay =
+        subjectIndex !== ""
+          ? [subjects[subjectIndex]]
+          : Object.keys(student.grades);
+      subjectsToDisplay.forEach((subject) => {
+        if (student.grades[subject]) {
+          student.grades[subject].forEach((grade) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${student.lastname}</td>
+              <td>${student.firstname}</td>
+              <td>${subject}</td>
+              <td>${grade}</td>
+            `;
+            tableData.appendChild(row);
+          });
+        }
+      });
+    }
   }
 }
 
 // Mettre à jour l'affichage de la moyenne générale
 function updateAverageGrade() {
   const studentIndex = document.getElementById("student-choice").value;
-  const student = students[studentIndex];
+  const subjectIndex = document.getElementById("lessonfield-choice").value;
 
-  if (student) {
-    const averages = Object.keys(student.grades)
-      .map((subject) => student.calculateAverage(subject))
-      .filter((avg) => avg !== null);
-    const totalAverage =
-      averages.length > 0
-        ? averages.reduce((sum, avg) => sum + avg, 0) / averages.length
-        : 0;
-    document.getElementById(
-      "average-grade"
-    ).innerText = `Moyenne générale: ${totalAverage.toFixed(2)}`;
+  if (studentIndex === "") {
+    if (subjectIndex !== "") {
+      const subjectGrades = students.flatMap(
+        (student) => student.grades[subjects[subjectIndex]] || []
+      );
+
+      const totalAverage =
+        subjectGrades.length > 0
+          ? subjectGrades.reduce((sum, grade) => sum + grade, 0) /
+            subjectGrades.length
+          : 0;
+
+      document.getElementById(
+        "average-grade"
+      ).innerText = `Moyenne générale de la classe en ${
+        subjects[subjectIndex]
+      }: ${totalAverage.toFixed(2)}`;
+    } else {
+      const classGrades = students.flatMap((student) =>
+        Object.values(student.grades).flat()
+      );
+
+      const totalAverage =
+        classGrades.length > 0
+          ? classGrades.reduce((sum, grade) => sum + grade, 0) /
+            classGrades.length
+          : 0;
+
+      document.getElementById(
+        "average-grade"
+      ).innerText = `Moyenne générale de la classe: ${totalAverage.toFixed(2)}`;
+    }
   } else {
-    document.getElementById("average-grade").innerText = "";
+    const student = students[studentIndex];
+    if (student) {
+      if (subjectIndex === "") {
+        const studentGrades = Object.values(student.grades).flat();
+        const totalAverage =
+          studentGrades.length > 0
+            ? studentGrades.reduce((sum, grade) => sum + grade, 0) /
+              studentGrades.length
+            : 0;
+
+        document.getElementById(
+          "average-grade"
+        ).innerText = `Moyenne générale de ${student.getFullName()}: ${totalAverage.toFixed(
+          2
+        )}`;
+      } else {
+        const subjectGrades = student.grades[subjects[subjectIndex]] || [];
+        const totalAverage =
+          subjectGrades.length > 0
+            ? subjectGrades.reduce((sum, grade) => sum + grade, 0) /
+              subjectGrades.length
+            : 0;
+
+        document.getElementById(
+          "average-grade"
+        ).innerText = `Moyenne de ${student.getFullName()} en ${
+          subjects[subjectIndex]
+        }: ${totalAverage.toFixed(2)}`;
+      }
+    } else {
+      document.getElementById("average-grade").innerText = "";
+    }
   }
 }
 

@@ -24,3 +24,5 @@ export default class Student {
         return `${this.lastname} ${this.firstname}`;
     }
 }
+
+
