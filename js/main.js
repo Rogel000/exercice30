@@ -150,48 +150,38 @@ function updateGradeTable() {
   const studentIndex = document.getElementById("student-choice").value;
   const subjectIndex = document.getElementById("lessonfield-choice").value;
 
-  if (studentIndex === "") {
-    students.forEach((student) => {
-      const subjectsToDisplay =
-        subjectIndex !== ""
-          ? [subjects[subjectIndex]]
-          : Object.keys(student.grades);
-      subjectsToDisplay.forEach((subject) => {
-        if (student.grades[subject]) {
-          student.grades[subject].forEach((grade) => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-              <td>${student.lastname}</td>
-              <td>${student.firstname}</td>
-              <td>${subject}</td>
-              <td>${grade}</td>
-            `;
-            tableData.appendChild(row);
-          });
-        }
-      });
+  const appendGradeRows = (student, subject, grades) => {
+    grades.forEach((grade) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${student.lastname}</td>
+        <td>${student.firstname}</td>
+        <td>${subject}</td>
+        <td>${grade}</td>
+      `;
+      tableData.appendChild(row);
     });
+  };
+
+  const processStudent = (student) => {
+    const subjectsToDisplay =
+      subjectIndex !== ""
+        ? [subjects[subjectIndex]]
+        : Object.keys(student.grades);
+
+    subjectsToDisplay.forEach((subject) => {
+      if (student.grades[subject]) {
+        appendGradeRows(student, subject, student.grades[subject]);
+      }
+    });
+  };
+
+  if (studentIndex === "") {
+    students.forEach(processStudent);
   } else {
     const student = students[studentIndex];
     if (student) {
-      const subjectsToDisplay =
-        subjectIndex !== ""
-          ? [subjects[subjectIndex]]
-          : Object.keys(student.grades);
-      subjectsToDisplay.forEach((subject) => {
-        if (student.grades[subject]) {
-          student.grades[subject].forEach((grade) => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-              <td>${student.lastname}</td>
-              <td>${student.firstname}</td>
-              <td>${subject}</td>
-              <td>${grade}</td>
-            `;
-            tableData.appendChild(row);
-          });
-        }
-      });
+      processStudent(student);
     }
   }
 }
@@ -201,72 +191,43 @@ function updateAverageGrade() {
   const studentIndex = document.getElementById("student-choice").value;
   const subjectIndex = document.getElementById("lessonfield-choice").value;
 
+  let grades = [];
+  let displayText = "";
+
   if (studentIndex === "") {
-    if (subjectIndex !== "") {
-      const subjectGrades = students.flatMap(
-        (student) => student.grades[subjects[subjectIndex]] || []
-      );
-
-      const totalAverage =
-        subjectGrades.length > 0
-          ? subjectGrades.reduce((sum, grade) => sum + grade, 0) /
-            subjectGrades.length
-          : 0;
-
-      document.getElementById(
-        "average-grade"
-      ).innerText = `Moyenne générale de la classe en ${
-        subjects[subjectIndex]
-      }: ${totalAverage.toFixed(2)}`;
-    } else {
-      const classGrades = students.flatMap((student) =>
+    if (subjectIndex === "") {
+      grades = students.flatMap((student) =>
         Object.values(student.grades).flat()
       );
-
-      const totalAverage =
-        classGrades.length > 0
-          ? classGrades.reduce((sum, grade) => sum + grade, 0) /
-            classGrades.length
-          : 0;
-
-      document.getElementById(
-        "average-grade"
-      ).innerText = `Moyenne générale de la classe: ${totalAverage.toFixed(2)}`;
+      displayText = `Moyenne générale de la classe: `;
+    } else {
+      grades = students.flatMap(
+        (student) => student.grades[subjects[subjectIndex]] || []
+      );
+      displayText = `Moyenne générale de la classe en ${subjects[subjectIndex]}: `;
     }
   } else {
     const student = students[studentIndex];
     if (student) {
       if (subjectIndex === "") {
-        const studentGrades = Object.values(student.grades).flat();
-        const totalAverage =
-          studentGrades.length > 0
-            ? studentGrades.reduce((sum, grade) => sum + grade, 0) /
-              studentGrades.length
-            : 0;
-
-        document.getElementById(
-          "average-grade"
-        ).innerText = `Moyenne générale de ${student.getFullName()}: ${totalAverage.toFixed(
-          2
-        )}`;
+        grades = Object.values(student.grades).flat();
+        displayText = `Moyenne générale de ${student.getFullName()}: `;
       } else {
-        const subjectGrades = student.grades[subjects[subjectIndex]] || [];
-        const totalAverage =
-          subjectGrades.length > 0
-            ? subjectGrades.reduce((sum, grade) => sum + grade, 0) /
-              subjectGrades.length
-            : 0;
-
-        document.getElementById(
-          "average-grade"
-        ).innerText = `Moyenne de ${student.getFullName()} en ${
+        grades = student.grades[subjects[subjectIndex]] || [];
+        displayText = `Moyenne de ${student.getFullName()} en ${
           subjects[subjectIndex]
-        }: ${totalAverage.toFixed(2)}`;
+        }: `;
       }
-    } else {
-      document.getElementById("average-grade").innerText = "";
     }
   }
+
+  const totalAverage =
+    grades.length > 0
+      ? grades.reduce((sum, grade) => sum + grade, 0) / grades.length
+      : 0;
+  document.getElementById(
+    "average-grade"
+  ).innerText = `${displayText}${totalAverage.toFixed(2)}`;
 }
 
 // Fonctions pour nettoyer les formulaires
